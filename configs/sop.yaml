@@ -1,1 +1,17 @@
-# SOP configuration specification
+version: 1
+steps:
+  - id: 1
+    name: "Inspect first cell orientation"
+    require:
+      class: cell_up
+      slot: 1
+  - id: 2
+    name: "Inspect second cell orientation"
+    require:
+      class: cell_down
+      slot: 2
+  - id: 3
+    name: "Inspect third cell orientation"
+    require:
+      class: cell_up
+      slot: 3

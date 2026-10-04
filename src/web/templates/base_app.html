@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Battery Verifier{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="brand-icon">
+          <rect x="2" y="7" width="16" height="10" rx="2" ry="2"></rect>
+          <line x1="22" y1="11" x2="22" y2="13"></line>
+          <path d="m9 11 2 2 4-4" stroke="var(--success)"></path>
+        </svg>
+        <span class="brand-name">Battery Verifier</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="{{ url_for('app_page') }}" class="nav-link {% if active_page == 'overview' %}active{% endif %}">Overview</a>
+        <a href="{{ url_for('dashboard') }}" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('results') }}" class="nav-link {% if active_page == 'results' %}active{% endif %}">Results</a>
+        <a href="{{ url_for('insights') }}" class="nav-link {% if active_page == 'insights' %}active{% endif %}">Insights</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="app-main">
+      <header class="top-bar">
+        <div id="status-pill" class="status-pill idle">
+          <span class="status-dot"></span>
+          <span id="status-pill-text">Idle</span>
+        </div>
+
+        <div class="user-nav">
+          <span class="user-email">{{ email }}</span>
+          <form method="POST" action="{{ url_for('logout') }}" style="display: inline;">
+            <button type="submit" class="btn btn-outline btn-sm">Logout</button>
+          </form>
+        </div>
+      </header>
+
+      <main class="page-content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

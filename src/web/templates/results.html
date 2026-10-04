@@ -1,0 +1,24 @@
+{% extends "base_app.html" %}
+
+{% block title %}Results - Battery Verifier{% endblock %}
+
+{% block content %}
+<div class="results-page" style="max-width: 900px;">
+  <div class="card-kicker">AUDIT LOG</div>
+  <h1 style="font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 20px;">Results</h1>
+
+  <!-- Filter Row -->
+  <div class="filter-row" style="display: flex; gap: 8px; margin-bottom: 20px;">
+    <button class="filter-btn active" data-filter="ALL">All</button>
+    <button class="filter-btn" data-filter="STEP_VERIFIED">Verified</button>
+    <button class="filter-btn" data-filter="WRONG_ORIENTATION">Wrong orientation</button>
+    <button class="filter-btn" data-filter="SKIPPED_STEP">Skipped</button>
+  </div>
+
+  <div class="column-card" style="padding: 20px;">
+    <div class="events-scroll">
+      <ul id="events" class="events-timeline"></ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

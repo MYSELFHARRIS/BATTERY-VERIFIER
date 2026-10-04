@@ -1,7 +1,11 @@
 // Professional industrial control-room UI rendering and polling logic.
-// Strictly uses textContent and DOM methods (no innerHTML).
+// Shared across all pages. Strictly uses textContent and DOM methods (no innerHTML).
 
 const SVG_NS = "http://www.w3.org/2000/svg";
+
+let wasRunning = false;
+let currentFilter = "ALL";
+let cachedEvents = [];
 
 function createSvgElement(tag, attrs = {}) {
   const el = document.createElementNS(SVG_NS, tag);
@@ -100,10 +104,94 @@ function createShieldIcon(size = 24) {
   return svg;
 }
 
+function renderEvents(eventsList) {
+  const eventsEl = document.getElementById("events");
+  if (!eventsEl) return;
+  eventsEl.replaceChildren();
+
+  const filtered = currentFilter === "ALL"
+    ? eventsList
+    : eventsList.filter((ev) => ev.type === currentFilter);
+
+  if (filtered.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "events-empty";
+    empty.appendChild(createEmptyIcon(40));
+    const emptyText = document.createElement("span");
+    emptyText.textContent = "No events yet";
+    empty.appendChild(emptyText);
+    eventsEl.appendChild(empty);
+    return;
+  }
+
+  filtered.forEach((ev) => {
+    const li = document.createElement("li");
+    li.className = "event-row";
+
+    const chip = document.createElement("div");
+    chip.className = "event-chip";
+    if (ev.type === "STEP_VERIFIED") {
+      chip.classList.add("chip-verified");
+      chip.appendChild(createCheckIcon(14));
+    } else if (ev.type === "WRONG_ORIENTATION") {
+      chip.classList.add("chip-wrong");
+      chip.appendChild(createAlertIcon(14));
+    } else if (ev.type === "SKIPPED_STEP") {
+      chip.classList.add("chip-skipped");
+      chip.appendChild(createSkipIcon(14));
+    } else {
+      chip.classList.add("chip-verified");
+      chip.appendChild(createCheckIcon(14));
+    }
+
+    const details = document.createElement("div");
+    details.className = "event-details";
+
+    const msg = document.createElement("div");
+    msg.className = "event-msg";
+    msg.textContent = ev.message;
+
+    const meta = document.createElement("div");
+    meta.className = "event-meta";
+    if (ev.step !== null && ev.step !== undefined) {
+      const stepSpan = document.createElement("span");
+      stepSpan.textContent = `Step ${ev.step}`;
+      meta.appendChild(stepSpan);
+    }
+    if (ev.confidence !== undefined && ev.confidence !== null) {
+      const confSpan = document.createElement("span");
+      confSpan.textContent = `Conf: ${Number(ev.confidence).toFixed(2)}`;
+      meta.appendChild(confSpan);
+    }
+
+    details.appendChild(msg);
+    details.appendChild(meta);
+
+    const timeEl = document.createElement("div");
+    timeEl.className = "event-time";
+    timeEl.textContent = ev.time;
+
+    li.appendChild(chip);
+    li.appendChild(details);
+    li.appendChild(timeEl);
+
+    eventsEl.appendChild(li);
+  });
+}
+
 function updateUI(status) {
   if (!status) return;
 
-  // 1. Status Pill
+  // Reconnect video feed if running switched from false to true
+  if (status.running && !wasRunning) {
+    const feed = document.getElementById("feed");
+    if (feed) {
+      feed.src = "/video_feed?t=" + Date.now();
+    }
+  }
+  wasRunning = Boolean(status.running);
+
+  // 1. Status Pill (present in top-bar on all pages)
   const pill = document.getElementById("status-pill");
   const pillText = document.getElementById("status-pill-text");
   if (pill && pillText) {
@@ -119,7 +207,7 @@ function updateUI(status) {
     }
   }
 
-  // 2. Camera Error Banner
+  // 2. Camera Error Banner (on Dashboard page)
   const errorEl = document.getElementById("camera-error");
   if (errorEl) {
     if (status.error) {
@@ -137,7 +225,7 @@ function updateUI(status) {
     stepTextEl.textContent = status.step_text || "Ready";
   }
 
-  // 4. Horizontal Stepper
+  // 4. Stepper
   const stepsEl = document.getElementById("steps");
   if (stepsEl) {
     stepsEl.replaceChildren();
@@ -165,76 +253,10 @@ function updateUI(status) {
   }
 
   // 5. Results Timeline
-  const eventsEl = document.getElementById("events");
-  if (eventsEl) {
-    eventsEl.replaceChildren();
-    const eventsList = status.events || [];
-    if (eventsList.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "events-empty";
-      empty.appendChild(createEmptyIcon(40));
-      const emptyText = document.createElement("span");
-      emptyText.textContent = "No events yet";
-      empty.appendChild(emptyText);
-      eventsEl.appendChild(empty);
-    } else {
-      eventsList.forEach((ev) => {
-        const li = document.createElement("li");
-        li.className = "event-row";
+  cachedEvents = status.events || [];
+  renderEvents(cachedEvents);
 
-        const chip = document.createElement("div");
-        chip.className = "event-chip";
-        if (ev.type === "STEP_VERIFIED") {
-          chip.classList.add("chip-verified");
-          chip.appendChild(createCheckIcon(14));
-        } else if (ev.type === "WRONG_ORIENTATION") {
-          chip.classList.add("chip-wrong");
-          chip.appendChild(createAlertIcon(14));
-        } else if (ev.type === "SKIPPED_STEP") {
-          chip.classList.add("chip-skipped");
-          chip.appendChild(createSkipIcon(14));
-        } else {
-          chip.classList.add("chip-verified");
-          chip.appendChild(createCheckIcon(14));
-        }
-
-        const details = document.createElement("div");
-        details.className = "event-details";
-
-        const msg = document.createElement("div");
-        msg.className = "event-msg";
-        msg.textContent = ev.message;
-
-        const meta = document.createElement("div");
-        meta.className = "event-meta";
-        if (ev.step !== null && ev.step !== undefined) {
-          const stepSpan = document.createElement("span");
-          stepSpan.textContent = `Step ${ev.step}`;
-          meta.appendChild(stepSpan);
-        }
-        if (ev.confidence !== undefined && ev.confidence !== null) {
-          const confSpan = document.createElement("span");
-          confSpan.textContent = `Conf: ${Number(ev.confidence).toFixed(2)}`;
-          meta.appendChild(confSpan);
-        }
-
-        details.appendChild(msg);
-        details.appendChild(meta);
-
-        const timeEl = document.createElement("div");
-        timeEl.className = "event-time";
-        timeEl.textContent = ev.time;
-
-        li.appendChild(chip);
-        li.appendChild(details);
-        li.appendChild(timeEl);
-
-        eventsEl.appendChild(li);
-      });
-    }
-  }
-
-  // 6. Insights Grid & Progress
+  // 6. Insights & KPIs
   const counts = status.counts || {};
   const vEl = document.getElementById("insight-verified");
   if (vEl) vEl.textContent = String(counts.STEP_VERIFIED ?? 0);
@@ -310,6 +332,12 @@ async function sendCommand(url) {
     });
     if (res.ok) {
       const data = await res.json();
+      if (url === "/api/start") {
+        const feed = document.getElementById("feed");
+        if (feed) {
+          feed.src = "/video_feed?t=" + Date.now();
+        }
+      }
       updateUI(data);
     }
   } catch (err) {
@@ -330,6 +358,16 @@ async function pollStatus() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Start verification on Overview page
+  const btnStartOverview = document.getElementById("btn-start-overview");
+  if (btnStartOverview) {
+    btnStartOverview.addEventListener("click", async () => {
+      await sendCommand("/api/start");
+      window.location.href = "/dashboard";
+    });
+  }
+
+  // Dashboard buttons
   const btnStart = document.getElementById("btn-start");
   if (btnStart) {
     btnStart.addEventListener("click", () => sendCommand("/api/start"));
@@ -344,6 +382,16 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnReset) {
     btnReset.addEventListener("click", () => sendCommand("/api/reset"));
   }
+
+  // Results filter buttons
+  document.querySelectorAll(".filter-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentFilter = btn.getAttribute("data-filter") || "ALL";
+      renderEvents(cachedEvents);
+    });
+  });
 
   // Poll immediately, then every 1000 ms
   pollStatus();

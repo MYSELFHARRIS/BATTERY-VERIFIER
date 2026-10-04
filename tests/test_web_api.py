@@ -245,4 +245,87 @@ def test_video_feed_returns_multipart_when_signed_in(test_setup):
     resp_signed = client.get("/video_feed")
     assert resp_signed.status_code == 200
     assert resp_signed.content_type.startswith("multipart/x-mixed-replace")
-    assert b"--frame" in resp_signed.data
+    stream_iter = iter(resp_signed.response)
+    chunk = next(stream_iter)
+    assert b"--frame" in chunk
+    resp_signed.close()
+
+
+def test_signed_in_pages_return_200_and_anon_redirects_to_login(test_setup):
+    app, _, _ = test_setup
+    client = app.test_client()
+
+    for path in ["/dashboard", "/results", "/insights"]:
+        resp_anon = client.get(path)
+        assert resp_anon.status_code == 302
+        assert resp_anon.headers["Location"].endswith("/login")
+
+    # Sign in
+    client.post(
+        "/login",
+        data={"email": "operator@example.com", "password": "Password123!"},
+    )
+
+    for path in ["/app", "/dashboard", "/results", "/insights"]:
+        resp = client.get(path)
+        assert resp.status_code == 200
+
+
+def test_idle_video_feed_yields_at_least_two_frames(test_setup):
+    app, worker, _ = test_setup
+    client = app.test_client()
+    client.post(
+        "/login",
+        data={"email": "operator@example.com", "password": "Password123!"},
+    )
+
+    assert worker.running is False
+    resp = client.get("/video_feed")
+    assert resp.status_code == 200
+    assert resp.content_type.startswith("multipart/x-mixed-replace")
+
+    stream_iter = iter(resp.response)
+    chunk1 = next(stream_iter)
+    chunk2 = next(stream_iter)
+
+    assert b"--frame" in chunk1
+    assert b"Content-Type: image/jpeg" in chunk1
+    assert b"--frame" in chunk2
+    assert b"Content-Type: image/jpeg" in chunk2
+    resp.close()
+
+
+def test_every_signed_in_page_contains_four_sidebar_links(test_setup):
+    app, _, _ = test_setup
+    client = app.test_client()
+    client.post(
+        "/login",
+        data={"email": "operator@example.com", "password": "Password123!"},
+    )
+
+    for path in ["/app", "/dashboard", "/results", "/insights"]:
+        resp = client.get(path)
+        assert resp.status_code == 200
+        html = resp.data.decode("utf-8")
+        assert "Overview" in html
+        assert "Dashboard" in html
+        assert "Results" in html
+        assert "Insights" in html
+
+
+def test_logout_stops_camera_worker(test_setup):
+    app, worker, _ = test_setup
+    client = app.test_client()
+    client.post(
+        "/login",
+        data={"email": "operator@example.com", "password": "Password123!"},
+    )
+
+    worker.running = True
+    assert worker.running is True
+
+    resp = client.post("/logout")
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/signed-out")
+    assert worker.running is False
+

@@ -1,0 +1,29 @@
+{% extends "base_app.html" %}
+
+{% block title %}Dashboard - Battery Verifier{% endblock %}
+
+{% block content %}
+<div class="dashboard-page" style="max-width: 860px;">
+  <div class="card-kicker">LIVE VERIFICATION</div>
+  <h1 style="font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 20px;">Dashboard</h1>
+
+  <div id="camera-error" class="error-banner" style="display: none;"></div>
+
+  <div class="video-frame">
+    <img id="feed" src="{{ url_for('video_feed') }}" alt="Live Video Stream">
+  </div>
+
+  <div class="btn-row">
+    <button id="btn-start" class="btn btn-accent">Start</button>
+    <button id="btn-stop" class="btn btn-outline">Stop</button>
+    <button id="btn-reset" class="btn btn-ghost">Reset</button>
+  </div>
+
+  <div class="current-step-box">
+    <span class="current-step-label">CURRENT STEP:</span>
+    <span id="step-text" class="current-step-value">Ready</span>
+  </div>
+
+  <ol id="steps" class="stepper"></ol>
+</div>
+{% endblock %}

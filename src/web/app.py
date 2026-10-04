@@ -14,16 +14,19 @@ from src.web.auth import init_db, verify_user
 def make_placeholder_frame() -> bytes:
     """Generate a clean dark placeholder JPEG frame."""
     img = np.zeros((360, 640, 3), dtype=np.uint8)
-    img[:] = (30, 30, 30)
-    text = "Camera Inactive"
+    img[:] = (32, 27, 17)  # #0B1220 in BGR
+    text = "Camera inactive"
     font = cv2.FONT_HERSHEY_SIMPLEX
     scale = 0.8
     (tw, th), _ = cv2.getTextSize(text, font, scale, 2)
     x = (640 - tw) // 2
     y = (360 + th) // 2
-    cv2.putText(img, text, (x, y), font, scale, (180, 180, 180), 2, cv2.LINE_AA)
+    cv2.putText(img, text, (x, y), font, scale, (138, 151, 173), 2, cv2.LINE_AA)
     ret, buf = cv2.imencode(".jpg", img, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
     return buf.tobytes() if ret else b""
+
+
+PLACEHOLDER_JPEG = make_placeholder_frame()
 
 
 def create_app(config: dict | None = None) -> Flask:
@@ -110,10 +113,31 @@ def create_app(config: dict | None = None) -> Flask:
     def app_page():
         if "user_email" not in session:
             return redirect(url_for("login"))
-        return render_template("app.html", email=session["user_email"])
+        return render_template("app.html", email=session["user_email"], active_page="overview")
+
+    @app.route("/dashboard")
+    def dashboard():
+        if "user_email" not in session:
+            return redirect(url_for("login"))
+        return render_template("dashboard.html", email=session["user_email"], active_page="dashboard")
+
+    @app.route("/results")
+    def results():
+        if "user_email" not in session:
+            return redirect(url_for("login"))
+        return render_template("results.html", email=session["user_email"], active_page="results")
+
+    @app.route("/insights")
+    def insights():
+        if "user_email" not in session:
+            return redirect(url_for("login"))
+        return render_template("insights.html", email=session["user_email"], active_page="insights")
 
     @app.route("/logout", methods=["POST"])
     def logout():
+        worker = get_worker()
+        if worker is not None and hasattr(worker, "stop"):
+            worker.stop()
         session.clear()
         return redirect(url_for("signed_out"))
 
@@ -129,22 +153,21 @@ def create_app(config: dict | None = None) -> Flask:
         worker = get_worker()
 
         def generate():
-            placeholder = make_placeholder_frame()
-            if not worker.running:
-                yield (
-                    b"--frame\r\n"
-                    b"Content-Type: image/jpeg\r\n\r\n" + placeholder + b"\r\n"
-                )
-                return
-
             try:
-                while worker.running:
-                    jpeg = worker.get_latest_jpeg() or placeholder
-                    yield (
-                        b"--frame\r\n"
-                        b"Content-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n"
-                    )
-                    time.sleep(0.1)
+                while True:
+                    if not worker.running:
+                        yield (
+                            b"--frame\r\n"
+                            b"Content-Type: image/jpeg\r\n\r\n" + PLACEHOLDER_JPEG + b"\r\n"
+                        )
+                        time.sleep(0.2)  # ~5 frames per second
+                    else:
+                        jpeg = worker.get_latest_jpeg() or PLACEHOLDER_JPEG
+                        yield (
+                            b"--frame\r\n"
+                            b"Content-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n"
+                        )
+                        time.sleep(0.1)  # ~10 frames per second
             except (GeneratorExit, BrokenPipeError, ConnectionResetError):
                 pass
 

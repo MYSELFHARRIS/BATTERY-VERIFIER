@@ -1,0 +1,68 @@
+{% extends "base_app.html" %}
+
+{% block title %}Insights - Battery Verifier{% endblock %}
+
+{% block content %}
+<div class="insights-page" style="max-width: 860px;">
+  <div class="card-kicker">SESSION METRICS</div>
+  <h1 style="font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 20px;">Insights</h1>
+
+  <div class="kpi-grid" style="margin-bottom: 24px;">
+    <div class="kpi-tile">
+      <div class="kpi-label">VERIFIED</div>
+      <div id="insight-verified" class="kpi-value text-success">0</div>
+    </div>
+
+    <div class="kpi-tile">
+      <div class="kpi-label">WRONG ORIENTATION</div>
+      <div id="insight-wrong-orientation" class="kpi-value text-danger">0</div>
+    </div>
+
+    <div class="kpi-tile">
+      <div class="kpi-label">SKIPPED</div>
+      <div id="insight-skipped" class="kpi-value text-warning">0</div>
+    </div>
+
+    <div class="kpi-tile">
+      <div class="kpi-label">STEPS DONE</div>
+      <div id="insight-steps-done" class="kpi-value">0 / 3</div>
+    </div>
+  </div>
+
+  <div class="column-card" style="padding: 24px; margin-bottom: 24px;">
+    <div class="progress-bar-wrap" style="margin-bottom: 20px;">
+      <div class="progress-header">
+        <span>SOP SEQUENCE PROGRESS</span>
+        <span id="progress-percent">0%</span>
+      </div>
+      <div class="progress-bar-track">
+        <div id="steps-progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
+      </div>
+    </div>
+
+    <div class="perf-row" style="margin-bottom: 0;">
+      <div class="perf-item">
+        <span class="perf-label">FRAME PROCESSING TIME</span>
+        <span class="perf-val"><span id="insight-ms-per-frame">0.0</span> ms</span>
+      </div>
+
+      <div class="perf-item">
+        <span class="perf-label">THROUGHPUT RATE</span>
+        <span class="perf-val"><span id="insight-fps">0.0</span> FPS</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="integrity-card" class="integrity-card" style="max-width: 500px;">
+    <div class="integrity-icon" id="integrity-icon-box">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="status-pending">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+    </div>
+    <div class="integrity-content">
+      <span class="integrity-label">LOG INTEGRITY</span>
+      <strong id="insight-chain" class="integrity-status status-pending">not started</strong>
+    </div>
+  </div>
+</div>
+{% endblock %}

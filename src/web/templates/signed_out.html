@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Signed Out - Battery Verifier{% endblock %}
+
+{% block content %}
+<div class="center-container">
+  <div class="center-card">
+    <div class="icon-badge-large">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <h1>You have signed out</h1>
+    <p>Your session has been securely closed.</p>
+    <a href="{{ url_for('login') }}" class="btn btn-accent" style="width: 100%; padding: 12px;">Sign in again</a>
+  </div>
+</div>
+{% endblock %}

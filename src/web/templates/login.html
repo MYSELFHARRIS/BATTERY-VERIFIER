@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In - Battery Verifier{% endblock %}
+
+{% block content %}
+<div class="split-screen">
+  <!-- Left panel: Hero & features -->
+  <aside class="split-hero">
+    <div class="hero-header">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
+        <rect x="2" y="7" width="16" height="10" rx="2" ry="2"></rect>
+        <line x1="22" y1="11" x2="22" y2="13"></line>
+        <path d="m9 11 2 2 4-4" stroke="var(--success)"></path>
+      </svg>
+      <span class="hero-brand">Battery Verifier</span>
+    </div>
+
+    <div class="hero-body">
+      <h1 class="hero-title">Battery Verifier</h1>
+      <p class="hero-subtitle">Camera-verified battery assembly</p>
+
+      <div class="hero-features">
+        <div class="feature-item">
+          <div class="feature-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              <polyline points="9 11 12 14 15 11"></polyline>
+            </svg>
+          </div>
+          <span class="feature-text">Step order checking</span>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+            </svg>
+          </div>
+          <span class="feature-text">Orientation checks</span>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon-box">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <path d="m9 12 2 2 4-4"></path>
+            </svg>
+          </div>
+          <span class="feature-text">Tamper-evident log</span>
+        </div>
+      </div>
+    </div>
+
+    <footer class="hero-footer">
+      MECH TITANS
+    </footer>
+  </aside>
+
+  <!-- Right panel: Sign in form -->
+  <main class="split-form-panel">
+    <div class="auth-card">
+      <h2 style="font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px;">Sign in</h2>
+      <p style="font-size: 14px; color: var(--muted); margin-bottom: 24px;">Enter your credentials to access the console</p>
+
+      {% if error %}
+      <div class="error-message">{{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('login') }}">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required autocomplete="email" placeholder="name@company.com" autofocus>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+        </div>
+
+        <button type="submit" class="btn btn-accent" style="width: 100%; padding: 12px; margin-top: 8px;">Sign in</button>
+      </form>
+    </div>
+  </main>
+</div>
+{% endblock %}

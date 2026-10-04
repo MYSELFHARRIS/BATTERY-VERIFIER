@@ -192,3 +192,104 @@ def test_log_only_contains_allowed_event_rows(
         assert "COMPLETE" not in results
     finally:
         conn.close()
+
+
+def test_dedupe_twelve_frames_wrong_orientation(
+    tmp_path: Path, sop_steps: list[Step], vertical_slots: list[Slot]
+) -> None:
+    """12 frames of wrong-orientation produce 1 returned event and 1 log row with dedupe=True, and 12 with dedupe=False."""
+    # confirm_frames=1 so every frame triggers WRONG_ORIENTATION for step 1
+    box_wrong = [BoxDetection("cell_down", 0.90, (40.0, 40.0, 60.0, 60.0))]
+    script = [box_wrong] * 12
+    frames = [np.zeros((100, 300, 3), dtype=np.uint8) for _ in range(12)]
+
+    # 1. dedupe=True
+    engine_dedupe = StepEngine(sop_steps, confirm_frames=1)
+    detector_dedupe = FakeDetector(script)
+    db_dedupe = tmp_path / "dedupe_true.db"
+
+    with VerificationLog(db_dedupe) as log:
+        events_dedupe = run(
+            frames, detector_dedupe, vertical_slots, engine_dedupe, log, dedupe=True
+        )
+        valid_dedupe, bad_row_dedupe = log.verify_chain()
+
+    assert len(events_dedupe) == 1
+    assert events_dedupe[0].type == EventType.WRONG_ORIENTATION
+    assert valid_dedupe is True
+    assert bad_row_dedupe is None
+
+    conn = sqlite3.connect(str(db_dedupe))
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM log")
+        assert cursor.fetchone()[0] == 1
+    finally:
+        conn.close()
+
+    # 2. dedupe=False
+    engine_no_dedupe = StepEngine(sop_steps, confirm_frames=1)
+    detector_no_dedupe = FakeDetector(script)
+    db_no_dedupe = tmp_path / "dedupe_false.db"
+
+    with VerificationLog(db_no_dedupe) as log:
+        events_no_dedupe = run(
+            frames,
+            detector_no_dedupe,
+            vertical_slots,
+            engine_no_dedupe,
+            log,
+            dedupe=False,
+        )
+        valid_no_dedupe, bad_row_no_dedupe = log.verify_chain()
+
+    assert len(events_no_dedupe) == 12
+    assert all(e.type == EventType.WRONG_ORIENTATION for e in events_no_dedupe)
+    assert valid_no_dedupe is True
+    assert bad_row_no_dedupe is None
+
+    conn = sqlite3.connect(str(db_no_dedupe))
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM log")
+        assert cursor.fetchone()[0] == 12
+    finally:
+        conn.close()
+
+
+def test_verified_step_followed_by_wrong_orientation_produces_two_rows(
+    tmp_path: Path, sop_steps: list[Step], vertical_slots: list[Slot]
+) -> None:
+    """A verified step followed by a wrong orientation at the next step produce 2 log rows."""
+    confirm_frames = 2
+    engine = StepEngine(sop_steps, confirm_frames=confirm_frames)
+
+    box_step1 = [BoxDetection("cell_up", 0.90, (40.0, 40.0, 60.0, 60.0))]
+    box_wrong2 = [BoxDetection("cell_up", 0.88, (140.0, 40.0, 160.0, 60.0))]
+
+    # 2 frames step 1 (verified), then 4 frames of wrong orientation at step 2 (logged once)
+    script = [box_step1] * confirm_frames + [box_wrong2] * (confirm_frames + 2)
+    detector = FakeDetector(script)
+    frames = [np.zeros((100, 300, 3), dtype=np.uint8) for _ in range(len(script))]
+    db_path = tmp_path / "two_rows.db"
+
+    with VerificationLog(db_path) as log:
+        events = run(frames, detector, vertical_slots, engine, log, dedupe=True)
+        valid, bad_row = log.verify_chain()
+
+    assert len(events) == 2
+    assert events[0].type == EventType.STEP_VERIFIED and events[0].step_id == 1
+    assert events[1].type == EventType.WRONG_ORIENTATION and events[1].step_id == 2
+    assert valid is True
+    assert bad_row is None
+
+    conn = sqlite3.connect(str(db_path))
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT step_id, result FROM log")
+        rows = cursor.fetchall()
+        assert len(rows) == 2
+        assert rows[0] == (1, "VERIFIED")
+        assert rows[1] == (2, "WRONG_ORIENTATION")
+    finally:
+        conn.close()

@@ -3,7 +3,12 @@
 from pathlib import Path
 import numpy as np
 import pytest
-from src.detection.detector import BoxDetection, YoloDetector, draw_boxes
+from src.detection.detector import (
+    BoxDetection,
+    YoloDetector,
+    draw_boxes,
+    unstretch_xyxy,
+)
 
 
 def test_missing_weights_raises_file_not_found(tmp_path: Path) -> None:
@@ -49,3 +54,29 @@ def test_box_detection_dataclass() -> None:
     assert det.label == "battery"
     assert det.confidence == 0.99
     assert det.xyxy == (0.0, 1.0, 2.0, 3.0)
+
+
+def test_unstretch_xyxy_full_frame() -> None:
+    """unstretch_xyxy maps (0, 0, 640, 640) with a 1920x864 frame to (0, 0, 1920, 864)."""
+    mapped = unstretch_xyxy((0, 0, 640, 640), orig_w=1920, orig_h=864, size=640)
+    assert mapped == (0.0, 0.0, 1920.0, 864.0)
+
+
+def test_unstretch_xyxy_quadrant() -> None:
+    """unstretch_xyxy maps (320, 320, 640, 640) to (960, 432, 1920, 864)."""
+    mapped = unstretch_xyxy(
+        (320, 320, 640, 640), orig_w=1920, orig_h=864, size=640
+    )
+    assert mapped == (960.0, 432.0, 1920.0, 864.0)
+
+
+def test_unstretch_xyxy_zero_width_raises_value_error() -> None:
+    """unstretch_xyxy raises ValueError for a zero width."""
+    with pytest.raises(ValueError, match="must be positive"):
+        unstretch_xyxy((0, 0, 640, 640), orig_w=0, orig_h=864, size=640)
+
+    with pytest.raises(ValueError, match="must be positive"):
+        unstretch_xyxy((0, 0, 640, 640), orig_w=1920, orig_h=0, size=640)
+
+    with pytest.raises(ValueError, match="must be positive"):
+        unstretch_xyxy((0, 0, 640, 640), orig_w=1920, orig_h=864, size=0)
